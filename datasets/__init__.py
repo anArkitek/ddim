@@ -175,6 +175,11 @@ def get_dataset(args, config):
         )
         test_dataset = Subset(dataset, test_indices)
         dataset = Subset(dataset, train_indices)
+    
+    elif config.data.dataset == "RAW22K":
+        from datasets.raw22k import RAW22K
+        dataset = RAW22K(root=config.data.root)
+        test_dataset = None
     else:
         dataset, test_dataset = None, None
 

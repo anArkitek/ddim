@@ -15,6 +15,7 @@ from functions.losses import loss_registry
 from datasets import get_dataset, data_transform, inverse_data_transform
 from functions.ckpt_util import get_ckpt_path
 
+import cv2
 import torchvision.utils as tvu
 
 
@@ -209,13 +210,13 @@ class Diffusion(object):
             model = torch.nn.DataParallel(model)
             model.load_state_dict(states[0], strict=True)
 
-            if self.config.model.ema:
-                ema_helper = EMAHelper(mu=self.config.model.ema_rate)
-                ema_helper.register(model)
-                ema_helper.load_state_dict(states[-1])
-                ema_helper.ema(model)
-            else:
-                ema_helper = None
+            # if self.config.model.ema:
+            #     ema_helper = EMAHelper(mu=self.config.model.ema_rate)
+            #     ema_helper.register(model)
+            #     ema_helper.load_state_dict(states[-1])
+            #     ema_helper.ema(model)
+            # else:
+            #     ema_helper = None
         else:
             # This used the pretrained DDPM model, see https://github.com/pesser/pytorch_diffusion
             if self.config.data.dataset == "CIFAR10":
@@ -264,11 +265,19 @@ class Diffusion(object):
                 x = self.sample_image(x, model)
                 x = inverse_data_transform(config, x)
 
-                for i in range(n):
-                    tvu.save_image(
-                        x[i], os.path.join(self.args.image_folder, f"{img_id}.png")
-                    )
-                    img_id += 1
+                if config.data.is_raw:
+                    x = x.detach().to("cpu").numpy()
+                    for i in range(n):
+                        image = x[i] * 65535
+                        image = image.astype(np.uint16).transpose(1, 2, 0)
+                        cv2.imwrite(os.path.join(self.args.image_folder, f"{img_id}.png"), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+                        img_id += 1
+                else:
+                    for i in range(n):
+                        tvu.save_image(
+                            x[i], os.path.join(self.args.image_folder, f"{img_id}.png")
+                        )
+                        img_id += 1
 
     def sample_sequence(self, model):
         config = self.config
