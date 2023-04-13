@@ -86,3 +86,15 @@ class RAW22K(Dataset):
 
     def extra_repr(self):
         return "Classes: {classes}".format(**self.__dict__)
+
+
+if __name__ == "__main__":
+    from torch.utils.data import DataLoader
+    dataset = RAW22K(root="/mnt/localssd/datasets/raw22k/original_size/stage4_cropped_patches", resolution=256)
+    dataloader = DataLoader(dataset=dataset, batch_size=32, shuffle=True)
+    data_iter = iter(dataloader)
+    samples = next(data_iter)
+    for i in range(len(samples[0])):
+        image = samples[0][i].numpy().transpose(1, 2, 0)
+        image = (image * 255).astype(np.uint8)
+        cv2.imwrite(f"{i}.png", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
