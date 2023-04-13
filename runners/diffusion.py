@@ -210,13 +210,13 @@ class Diffusion(object):
             model = torch.nn.DataParallel(model)
             model.load_state_dict(states[0], strict=True)
 
-            if self.config.model.ema:
-                ema_helper = EMAHelper(mu=self.config.model.ema_rate)
-                ema_helper.register(model)
-                ema_helper.load_state_dict(states[-1])
-                ema_helper.ema(model)
-            else:
-                ema_helper = None
+            # if self.config.model.ema:
+            #     ema_helper = EMAHelper(mu=self.config.model.ema_rate)
+            #     ema_helper.register(model)
+            #     ema_helper.load_state_dict(states[-1])
+            #     ema_helper.ema(model)
+            # else:
+            #     ema_helper = None
         else:
             # This used the pretrained DDPM model, see https://github.com/pesser/pytorch_diffusion
             if self.config.data.dataset == "CIFAR10":
