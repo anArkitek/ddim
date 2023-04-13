@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-<<<<<<< HEAD
 # from .vision import VisionDataset
 import os
 import cv2
@@ -34,13 +33,6 @@ def resize_image(image, ratio):
     else:
         raise NotImplementedError
     return image
-=======
-from .vision import VisionDataset
-import os
-import cv2
-import numpy as np
-from torchvision.transforms import RandomHorizontalFlip
->>>>>>> 426d8193d8547f267ce52e4586f0f9c7a88bd440
 
 
 class RAW22K(Dataset):
