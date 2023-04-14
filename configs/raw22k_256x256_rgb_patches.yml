@@ -41,6 +41,7 @@ training:
 sampling:
     batch_size: 128
     last_only: True
+    use_ema: False
 
 optim:
     weight_decay: 0.000
