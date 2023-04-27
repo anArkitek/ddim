@@ -132,6 +132,7 @@ class Diffusion(object):
                 ema_helper.load_state_dict(states[4])
 
         for epoch in range(start_epoch, self.config.training.n_epochs):
+            epoch_loss = 0
             data_start = time.time()
             data_time = 0
             for i, (x, y) in enumerate(train_loader):
@@ -158,6 +159,7 @@ class Diffusion(object):
                     f"step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
                 )
 
+                epoch_loss += loss.item()
                 optimizer.zero_grad()
                 loss.backward()
 
@@ -189,6 +191,7 @@ class Diffusion(object):
                     torch.save(states, os.path.join(self.args.log_path, "ckpt.pth"))
 
                 data_start = time.time()
+            tb_logger.add_scalar("epoch_loss", epoch_loss, epoch)
 
     def sample(self):
         model = Model(self.config)
