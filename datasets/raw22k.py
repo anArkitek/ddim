@@ -51,8 +51,9 @@ class RAW22K(Dataset):
     def __init__(self, root, resolution, transform=None, target_transform=None):
         super(RAW22K, self).__init__()
         self.image_paths = []
+        extensions = ["jpg", "png"]
         for _root, _dirs, _files in os.walk(root):
-            self.image_paths.extend([os.path.join(_root, f) for f in _files if f.endswith(".png")])
+            self.image_paths.extend([os.path.join(_root, f) for f in _files if f.split(".")[-1] in extensions])
             
         self.length = len(self.image_paths)
         self.resolution = resolution
