@@ -4,6 +4,7 @@ __pycache__/
 # experiment folders
 raw22k_256x256_rgb_patches/
 raw22k_256x256_rgb/
+zhiwen_*/
 
 __pycache__/
 
