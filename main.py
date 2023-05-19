@@ -88,6 +88,12 @@ def parse_args_and_config():
     parser.add_argument("--sequence", action="store_true")
 
     args = parser.parse_args()
+    # distributed
+    args.rank = int(os.environ['RANK'])
+    args.local_rank = int(os.environ['LOCAL_RANK'])
+    args.world_size = int(os.environ['WORLD_SIZE'])
+    torch.cuda.set_device(args.local_rank)
+    
     args.log_path = os.path.join(args.exp, "logs", args.doc)
 
     # parse config file
@@ -99,29 +105,30 @@ def parse_args_and_config():
 
     if not args.test and not args.sample:
         if not args.resume_training:
-            if os.path.exists(args.log_path):
-                overwrite = False
-                if args.ni:
-                    overwrite = True
-                else:
-                    response = input("Folder already exists. Overwrite? (Y/N)")
-                    if response.upper() == "Y":
+            if args.local_rank == 0:
+                if os.path.exists(args.log_path):
+                    overwrite = False
+                    if args.ni:
                         overwrite = True
+                    else:
+                        response = input("Folder already exists. Overwrite? (Y/N)")
+                        if response.upper() == "Y":
+                            overwrite = True
 
-                if overwrite:
-                    shutil.rmtree(args.log_path)
-                    shutil.rmtree(tb_path)
-                    os.makedirs(args.log_path)
-                    if os.path.exists(tb_path):
+                    if overwrite:
+                        shutil.rmtree(args.log_path)
                         shutil.rmtree(tb_path)
+                        os.makedirs(args.log_path)
+                        if os.path.exists(tb_path):
+                            shutil.rmtree(tb_path)
+                    else:
+                        print("Folder exists. Program halted.")
+                        sys.exit(0)
                 else:
-                    print("Folder exists. Program halted.")
-                    sys.exit(0)
-            else:
-                os.makedirs(args.log_path)
+                    os.makedirs(args.log_path)
 
-            with open(os.path.join(args.log_path, "config.yml"), "w") as f:
-                yaml.dump(new_config, f, default_flow_style=False)
+                with open(os.path.join(args.log_path, "config.yml"), "w") as f:
+                    yaml.dump(new_config, f, default_flow_style=False)
 
         new_config.tb_logger = tb.SummaryWriter(log_dir=tb_path)
         # setup logger
@@ -209,11 +216,15 @@ def dict2namespace(config):
 
 
 def main():
+    torch.distributed.init_process_group(backend='nccl')
     args, config = parse_args_and_config()
-    logging.info("Writing log file to {}".format(args.log_path))
-    logging.info("Exp instance id = {}".format(os.getpid()))
-    logging.info("Exp comment = {}".format(args.comment))
 
+    if args.local_rank == 0:
+        logging.info("Writing log file to {}".format(args.log_path))
+        logging.info("Exp instance id = {}".format(os.getpid()))
+        logging.info("Exp comment = {}".format(args.comment))
+    print(f"Start running basic DDP example on local rank {args.local_rank} and rank {args.rank}.")
+        
     try:
         runner = Diffusion(args, config)
         if args.sample:

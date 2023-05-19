@@ -2,6 +2,7 @@ data:
     dataset: "CIFAR10"
     image_size: 32
     channels: 3
+    is_raw: False
     logit_transform: false
     uniform_dequantization: false
     gaussian_dequantization: false

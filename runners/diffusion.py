@@ -100,16 +100,18 @@ class Diffusion(object):
         args, config = self.args, self.config
         tb_logger = self.config.tb_logger
         dataset, test_dataset = get_dataset(args, config)
+        sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
         train_loader = data.DataLoader(
             dataset,
             batch_size=config.training.batch_size,
-            shuffle=True,
+            sampler=sampler,
             num_workers=config.data.num_workers,
         )
         model = Model(config)
 
         model = model.to(self.device)
-        model = torch.nn.DataParallel(model)
+        # model = torch.nn.DataParallel(model)
+        model = torch.nn.parallel.DistributedDataParallel(model)
 
         optimizer = get_optimizer(self.config, model.parameters())
 
@@ -136,6 +138,8 @@ class Diffusion(object):
             data_start = time.time()
             data_time = 0
             for i, (x, y) in enumerate(train_loader):
+                if i > 1:
+                    break
                 n = x.size(0)
                 data_time += time.time() - data_start
                 model.train()
@@ -153,11 +157,12 @@ class Diffusion(object):
                 t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
                 loss = loss_registry[config.model.type](model, x, t, e, b)
 
-                tb_logger.add_scalar("loss", loss, global_step=step)
+                if args.local_rank == 0:
+                    tb_logger.add_scalar("loss", loss, global_step=step)
 
-                logging.info(
-                    f"step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
-                )
+                    logging.info(
+                        f"step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
+                    )
 
                 epoch_loss += loss.item()
                 optimizer.zero_grad()
@@ -174,7 +179,7 @@ class Diffusion(object):
                 if self.config.model.ema:
                     ema_helper.update(model)
 
-                if step % self.config.training.snapshot_freq == 0 or step == 1:
+                if args.local_rank == 0 and (step % self.config.training.snapshot_freq == 0 or step == 1):
                     states = [
                         model.state_dict(),
                         optimizer.state_dict(),
@@ -191,7 +196,48 @@ class Diffusion(object):
                     torch.save(states, os.path.join(self.args.log_path, "ckpt.pth"))
 
                 data_start = time.time()
-            tb_logger.add_scalar("epoch_loss", epoch_loss, epoch)
+            
+            # end of epoch
+            if args.local_rank == 0:
+                tb_logger.add_scalar("epoch_loss", epoch_loss, epoch)
+                self.ddim_val(model, epoch)
+                
+    @torch.no_grad()
+    def ddim_val(self, model, epoch):
+        config = self.config
+        model.eval()
+        x = torch.randn(
+            8,
+            config.data.channels,
+            config.data.image_size,
+            config.data.image_size,
+            device=self.device,
+        )
+
+        # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
+        seq = range(0, self.num_timesteps, 20)
+        from functions.denoising import generalized_steps
+        _, xs = generalized_steps(x, seq, model, self.betas, eta=0.0)
+        x = [xs[i] for i in range(0, 50, 10)]
+        x = [inverse_data_transform(config, y) for y in x] # x[i].shape[8, 3, h, w]
+        tensor = torch.concat(x, dim=-1) # tensor.shape[8, 3, h, w*5]
+
+        val_local_dir = os.path.join(self.args.log_path, "ddim_val")
+        os.makedirs(val_local_dir, exist_ok=True)
+        # print(tensor.shape)
+        image = tensor.detach().numpy().transpose(0, 2, 3, 1).reshape(8 * config.data.image_size, -1, 3)
+        if self.config.data.is_raw:
+            image = (image * 65535).astype(np.uint16)
+            cv2.imwrite(os.path.join(val_local_dir, f"e{epoch}_val.png"),
+                        cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                       )
+        else:
+            image = (image * 255).astype(np.uint8)
+            cv2.imwrite(os.path.join(val_local_dir, f"e{epoch}_val.png"),
+                        cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        )
+        model.train()
+        
 
     def sample(self):
         model = Model(self.config)
@@ -353,7 +399,7 @@ class Diffusion(object):
 
         if self.args.sample_type == "generalized":
             if self.args.skip_type == "uniform":
-                skip = self.num_timesteps // self.args.timesteps
+                skip = self.num_timesteps // self.args.timesteps # skip: 20 = 1000 // 50
                 seq = range(0, self.num_timesteps, skip)
             elif self.args.skip_type == "quad":
                 seq = (

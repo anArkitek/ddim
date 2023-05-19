@@ -1,5 +1,16 @@
 # Denoising Diffusion Implicit Models (DDIM)
 
+## ZHIWEN
+
+This branch is modified such that DDP (DistributedDataParallel) is supported. The modifications happen in three parts:
+
+    1. The training part 
+    2. The EMA part
+    3. The Sampling part
+    
+
+
+
 [Jiaming Song](http://tsong.me), [Chenlin Meng](http://cs.stanford.edu/~chenlin) and [Stefano Ermon](http://cs.stanford.edu/~ermon), Stanford
 
 Implements sampling from an implicit model that is trained with the same procedure as [Denoising Diffusion Probabilistic Model](https://hojonathanho.github.io/diffusion/), but costs much less time and compute if you want to sample from it (click image below for a video demo):

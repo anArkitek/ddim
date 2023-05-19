@@ -5,8 +5,9 @@ __pycache__/
 raw22k_256x256_rgb_patches/
 raw22k_256x256_rgb/
 zhiwen_*/
+raw22k_*/
+cifar10*/
 
 __pycache__/
 
-raw22k_*/
-cifar10*/
+
