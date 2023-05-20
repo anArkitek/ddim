@@ -17,7 +17,7 @@ from functions.ckpt_util import get_ckpt_path
 
 import cv2
 import torchvision.utils as tvu
-
+import math
 
 def torch2hwcuint8(x, clip=False):
     if clip:
@@ -256,7 +256,8 @@ class Diffusion(object):
                     map_location=self.config.device,
                 )
             model = model.to(self.device)
-            model = torch.nn.DataParallel(model)
+            # model = torch.nn.DataParallel(model)
+            model = torch.nn.parallel.DistributedDataParallel(model)
             model.load_state_dict(states[0], strict=True)
 
             if self.config.model.ema and self.config.sampling.use_ema:
@@ -275,10 +276,11 @@ class Diffusion(object):
             else:
                 raise ValueError
             ckpt = get_ckpt_path(f"ema_{name}")
-            print("Loading checkpoint {}".format(ckpt))
+            if self.args.local_rank == 0:
+                print("Loading checkpoint {}".format(ckpt))
             model.load_state_dict(torch.load(ckpt, map_location=self.device))
             model.to(self.device)
-            model = torch.nn.DataParallel(model)
+            model = torch.nn.parallel.DistributedDataParallel(model)
 
         model.eval()
 
@@ -294,8 +296,9 @@ class Diffusion(object):
     def sample_fid(self, model):
         config = self.config
         img_id = len(glob.glob(f"{self.args.image_folder}/*"))
+        img_id += self.args.local_rank
         print(f"starting from image {img_id}")
-        total_n_samples = 50000
+        total_n_samples = math.ceil(50000 / 8)
         n_rounds = (total_n_samples - img_id) // config.sampling.batch_size
 
         with torch.no_grad():
@@ -320,13 +323,13 @@ class Diffusion(object):
                         image = x[i] * 65535
                         image = image.astype(np.uint16).transpose(1, 2, 0)
                         cv2.imwrite(os.path.join(self.args.image_folder, f"{img_id}.png"), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-                        img_id += 1
+                        img_id += self.args.world_size
                 else:
                     for i in range(n):
                         tvu.save_image(
                             x[i], os.path.join(self.args.image_folder, f"{img_id}.png")
                         )
-                        img_id += 1
+                        img_id += self.args.world_size
 
     def sample_sequence(self, model):
         config = self.config

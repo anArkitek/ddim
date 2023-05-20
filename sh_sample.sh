@@ -1,5 +1,5 @@
-python main.py\
-    --config=raw22k_256x256_rgb_patches.yml\
-    --exp=raw22k_256x256_rgb_patches\
-    --doc=raw22k_256x256_rgb_patches\
-    --ni --sample --fid --timesteps=50 --eta=0
+torchrun --nnodes=1 --nproc-per-node=8 main.py \
+--config=cifar10.yml \
+--exp=cifar10 \
+--doc=cifar10 \
+--ni --sample --fid --timesteps=50 --eta=0

@@ -5,12 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "main.py-sample",
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["--config=raw22k_256x256_rgb_patches.yml", "--exp=raw22k_256x256_rgb_patches", "--doc=raw22k_256x256_rgb_patches", "--ni", "--sample", "--fid", "--timesteps=50", "--eta=0"],
-            "env": {"CUDA_VISIBLE_DEVICES": "0"},
+            "args": [
+                "--config=raw22k_256x256_rgb_patches.yml",
+                "--exp=raw22k_256x256_rgb_patches",
+                "--doc=raw22k_256x256_rgb_patches",
+                "--ni",
+                "--sample",
+                "--fid",
+                "--timesteps=50",
+                "--eta=0"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -20,9 +39,18 @@
             "module": "torch.distributed.run",
             "request": "launch",
             "args": [
-                "--nnodes=1", "--nproc-per-node=2",
-                "main.py", "--config=cifar10.yml", "--exp=cifar10", "--doc=cifar10", "--ni", "--resume_training"],
-            "env": {"CUDA_VISIBLE_DEVICES": "0,1"},
+                "--nnodes=1",
+                "--nproc-per-node=2",
+                "main.py",
+                "--config=cifar10.yml",
+                "--exp=cifar10",
+                "--doc=cifar10",
+                "--ni",
+                "--resume_training"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0,1"
+            },
             "console": "integratedTerminal",
             "justMyCode": true
         }

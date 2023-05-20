@@ -117,7 +117,6 @@ def parse_args_and_config():
 
                     if overwrite:
                         shutil.rmtree(args.log_path)
-                        shutil.rmtree(tb_path)
                         os.makedirs(args.log_path)
                         if os.path.exists(tb_path):
                             shutil.rmtree(tb_path)
