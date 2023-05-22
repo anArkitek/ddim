@@ -23,6 +23,6 @@ torchrun \
 --rdzv_id=$JOB_ID --rdzv_backend=c10d --rdzv_endpoint=$HOST_NODE_ADDR \
 main.py \
 --config=zhiwen_lsun_256x256_raw.yml \
---exp=zhiwen_lsun_256x256_raw.yml \
---doc=zhiwen_lsun_256x256_raw.yml \
+--exp=zhiwen_lsun_256x256_raw \
+--doc=zhiwen_lsun_256x256_raw \
 --ni

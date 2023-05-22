@@ -132,6 +132,8 @@ class Diffusion(object):
             step = states[3]
             if self.config.model.ema:
                 ema_helper.load_state_dict(states[4])
+            del states
+            torch.cuda.empty_cache()
 
         for epoch in range(start_epoch, self.config.training.n_epochs):
             epoch_loss = 0
@@ -161,7 +163,7 @@ class Diffusion(object):
                     tb_logger.add_scalar("loss", loss, global_step=step)
 
                     logging.info(
-                        f"step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
+                        f"epoch: {epoch}, step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
                     )
 
                 epoch_loss += loss.item()
